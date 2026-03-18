@@ -15,28 +15,24 @@ function App() {
   const [desc, setDesc] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateTodoId, setUpdateTodoId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const createTodo = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !desc) {
+    if (!title.trim() || !desc.trim()) {
       return;
     }
     if (isUpdating) {
-      if (updateTodoId == "") return;
+      if (updateTodoId === "") return;
       if (!todos) return;
-      // const todo = todos.find((ele) => ele.id == updateTodoId );
       const updatedTodos = todos.map((ele) => {
         if (ele.id === updateTodoId) {
-          ele.title = title;
-          ele.desc = desc;
-          ele.isUpdated = true;
+          return { ...ele, title: title.trim(), desc: desc.trim(), isUpdated: true };
         }
         return ele;
       });
       setTodos(updatedTodos);
-      setIsUpdating(false);
-      setUpdateTodoId("");
-      resetFormValues();
+      handleCancelUpdate();
       return;
     }
 
@@ -45,7 +41,7 @@ function App() {
       desc: desc.trim(),
       isCompleted: false,
       isUpdated: false,
-      id: `${todos?.length}${title}`,
+      id: crypto.randomUUID(),
     };
     resetFormValues();
     if (!todos) {
@@ -54,24 +50,21 @@ function App() {
     }
     setTodos([...todos, formBody]);
   };
+
   const resetFormValues = () => {
     setTitle("");
     setDesc("");
   };
 
-  // const handleDelete =(id : string)=> {
-  //   if(!todos){
-  //     return;
-  //   }
-  //   const filteredTodos = todos.filter((todo) => {
-  //     return todo.id !== id
-  //   });
-  //   setTodos(filteredTodos);
-  // }
+  const handleCancelUpdate = () => {
+    setIsUpdating(false);
+    setUpdateTodoId("");
+    resetFormValues();
+  };
 
   const handleUpdateTodo = (id: string) => {
     if (!todos) return;
-    const todo = todos.find((ele) => ele.id == id);
+    const todo = todos.find((ele) => ele.id === id);
     if (!todo) return;
     if (todo.isCompleted) return;
     setTitle(todo.title);
@@ -80,9 +73,23 @@ function App() {
     setUpdateTodoId(id);
   };
 
+  const filteredTodos = todos?.filter((todo) => 
+    todo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    todo.desc.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <>
       <h1>Todos</h1>
+
+      <div style={{ marginBottom: "20px" }}>
+        <input 
+          type="text" 
+          placeholder="Search todos..." 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
       <form onSubmit={createTodo}>
         <input
@@ -92,7 +99,7 @@ function App() {
             setTitle(e.target.value)
           }
           value={title}
-          
+          required
         />
         <input
           type="text"
@@ -101,39 +108,34 @@ function App() {
             setDesc(e.target.value)
           }
           value={desc}
-          
+          required
         />
 
         <button type="submit">
           {isUpdating ? "Update Todo" : "Create todo"}
         </button>
+        {isUpdating && (
+          <button type="button" onClick={handleCancelUpdate}>
+            Cancel
+          </button>
+        )}
       </form>
 
       <ul>
-        {todos &&
-          todos.map((todo) => (
+        {filteredTodos && filteredTodos.length > 0 ? (
+          filteredTodos.map((todo) => (
             <Todo
               key={todo.id}
-              // title={todo.title}
-              // id={todo.id}
-              // desc={todo.desc}
-              // isCompleted={todo.isCompleted}
-              // isUpdated={todo.isUpdated}
               {...todo}
               setTodos={setTodos}
               todos={todos}
               handleUpdateTodo={() => handleUpdateTodo(todo.id)}
             />
-          ))}
+          ))
+        ) : (
+          <p>{searchTerm ? "No matches found" : "No todos yet"}</p>
+        )}
       </ul>
-      {/* <ul>
-        <li>
-          <p>{todos && todos[0].title}</p>
-        </li>
-        <li>
-          <p>{todos && todos[1].title}</p>
-        </li>
-      </ul> */}
     </>
   );
 }
